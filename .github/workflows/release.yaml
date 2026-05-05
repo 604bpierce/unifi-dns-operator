@@ -1,4 +1,4 @@
-name: Release
+name: Create Release Tag
 
 on:
   workflow_dispatch:
@@ -39,6 +39,6 @@ jobs:
           git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
           git push origin "${{ inputs.version }}"
 
-      - name: Trigger build workflow
+      - name: Trigger release workflow
         run: |
-          echo "Tag ${{ inputs.version }} created. The build-and-publish workflow will automatically create the release."
+          echo "Tag ${{ inputs.version }} created. The Release workflow will automatically build and publish the operator."

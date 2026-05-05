@@ -1,8 +1,13 @@
 name: E2E Tests
 
+# E2E tests require actual Unifi credentials and controller access
+# Run manually when you have a test environment set up
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: 'E2E tests require Unifi credentials to be configured in the cluster'
+        required: false
 
 jobs:
   test-e2e:

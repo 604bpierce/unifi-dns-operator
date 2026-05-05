@@ -1,6 +1,6 @@
 # Unifi DNS Operator
 
-[![Build and Publish](https://github.com/bpierce/unifi-dns-operator/actions/workflows/build-and-publish.yaml/badge.svg)](https://github.com/bpierce/unifi-dns-operator/actions/workflows/build-and-publish.yaml)
+[![CI](https://github.com/bpierce/unifi-dns-operator/actions/workflows/test.yaml/badge.svg)](https://github.com/bpierce/unifi-dns-operator/actions/workflows/test.yaml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bpierce/unifi-dns-operator)](https://goreportcard.com/report/github.com/bpierce/unifi-dns-operator)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 

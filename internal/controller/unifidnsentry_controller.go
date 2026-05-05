@@ -64,7 +64,7 @@ func (r *UnifiDNSEntryReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Handle deletion
-	if !entry.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !entry.DeletionTimestamp.IsZero() {
 		return r.handleDeletion(ctx, entry)
 	}
 

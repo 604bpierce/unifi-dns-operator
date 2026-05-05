@@ -117,9 +117,41 @@ Releases are automated via GitHub Actions. To create a new release:
 
 ## Testing
 
+### Unit Tests
+
+Unit tests run in CI on every push and PR:
+```bash
+make test
+```
+
+These tests validate:
+- CRD creation and validation
+- Controller reconciliation logic
+- Status updates and conditions
+
+### E2E Tests
+
+End-to-end tests require a real Unifi controller and are **not run in CI**.
+
+To run E2E tests locally:
+```bash
+# Set your Unifi credentials
+export UNIFI_API_URL="https://your-controller/proxy/network/integration"
+export UNIFI_SITE_ID="your-site-id"
+export UNIFI_API_KEY="your-api-key"
+
+# Run E2E tests (requires Kind installed)
+make test-e2e
+```
+
+See [test/e2e/README.md](test/e2e/README.md) for details.
+
+### Testing Guidelines
+
 - Write unit tests for new functionality
 - Test with actual Unifi controller when possible
 - Ensure backward compatibility
+- Don't commit credentials or sensitive data
 
 ## Questions?
 
