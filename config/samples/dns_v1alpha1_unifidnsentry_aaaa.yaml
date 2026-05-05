@@ -1,0 +1,14 @@
+apiVersion: dns.bx.network/v1alpha1
+kind: UnifiDNSEntry
+metadata:
+  labels:
+    app.kubernetes.io/name: unifi-dns-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: unifidnsentry-aaaa-sample
+spec:
+  type: AAAA_RECORD
+  domain: ipv6.example.local
+  enabled: true
+  recordData:
+    ipv6Address: "2001:db8::1"
+  ttlSeconds: 300

@@ -1,0 +1,6 @@
+resources:
+- manager.yaml
+
+# Uncomment the following line to include the Unifi credentials secret
+# Make sure to update unifi-credentials.yaml with your actual credentials
+# - unifi-credentials.yaml

@@ -1,0 +1,14 @@
+apiVersion: dns.bx.network/v1alpha1
+kind: UnifiDNSEntry
+metadata:
+  labels:
+    app.kubernetes.io/name: unifi-dns-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: unifidnsentry-cname-sample
+spec:
+  type: CNAME_RECORD
+  domain: app.example.local
+  enabled: true
+  recordData:
+    targetDomain: "example.local"
+  ttlSeconds: 300

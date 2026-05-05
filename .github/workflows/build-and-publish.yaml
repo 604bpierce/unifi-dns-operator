@@ -1,0 +1,172 @@
+name: Build and Publish Operator
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Run tests
+        run: make test
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Docker image (PR only)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  generate-manifests:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+
+      - name: Install kustomize
+        run: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+
+      - name: Generate deployment manifests
+        run: |
+          # Extract version from tag
+          VERSION=${GITHUB_REF#refs/tags/}
+
+          # Generate manifests with the version tag
+          cd config/manager
+          kustomize edit set image controller=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}
+          cd ../..
+
+          # Build the manifests
+          kustomize build config/default > unifi-dns-operator-${VERSION}.yaml
+
+          # Create install script
+          cat > install.yaml <<EOF
+          # Unifi DNS Operator Installation
+          # Version: ${VERSION}
+          #
+          # Installation Instructions:
+          # 1. Create the secret with your Unifi credentials:
+          #    kubectl create secret generic unifi-dns-operator-credentials \\
+          #      --from-literal=UNIFI_API_URL=https://your-controller/proxy/network/integration \\
+          #      --from-literal=UNIFI_SITE_ID=your-site-id \\
+          #      --from-literal=UNIFI_API_KEY=your-api-key \\
+          #      -n unifi-dns-operator-system
+          #
+          # 2. Apply this manifest:
+          #    kubectl apply -f unifi-dns-operator-${VERSION}.yaml
+          EOF
+
+          cat unifi-dns-operator-${VERSION}.yaml >> install.yaml
+          mv install.yaml unifi-dns-operator-${VERSION}.yaml
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            unifi-dns-operator-*.yaml
+          body: |
+            ## Unifi DNS Operator Release
+
+            ### Installation
+
+            ```bash
+            # Create the credentials secret
+            kubectl create secret generic unifi-dns-operator-credentials \
+              --from-literal=UNIFI_API_URL=https://your-controller/proxy/network/integration \
+              --from-literal=UNIFI_SITE_ID=your-site-id \
+              --from-literal=UNIFI_API_KEY=your-api-key \
+              -n unifi-dns-operator-system
+
+            # Install the operator
+            kubectl apply -f https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/unifi-dns-operator-${{ github.ref_name }}.yaml
+            ```
+
+            ### Container Image
+
+            ```
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            ```
+
+            ### What's Changed
+
+            See the [CHANGELOG](CHANGELOG.md) for details.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

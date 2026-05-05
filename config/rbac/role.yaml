@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - dns.bx.network
+  resources:
+  - unifidnsentries
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - dns.bx.network
+  resources:
+  - unifidnsentries/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - dns.bx.network
+  resources:
+  - unifidnsentries/status
+  verbs:
+  - get
+  - patch
+  - update
