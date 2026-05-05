@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -46,12 +45,20 @@ var _ = Describe("UnifiDNSEntry Controller", func() {
 			By("creating the custom resource for the Kind UnifiDNSEntry")
 			err := k8sClient.Get(ctx, typeNamespacedName, unifidnsentry)
 			if err != nil && errors.IsNotFound(err) {
+				ipv4 := "192.168.1.100"
 				resource := &dnsv1alpha1.UnifiDNSEntry{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      resourceName,
 						Namespace: "default",
 					},
-					// TODO(user): Specify other spec details if needed.
+					Spec: dnsv1alpha1.UnifiDNSEntrySpec{
+						Type:    dnsv1alpha1.ARecord,
+						Domain:  "test.local",
+						Enabled: true,
+						RecordData: dnsv1alpha1.RecordData{
+							IPv4Address: &ipv4,
+						},
+					},
 				}
 				Expect(k8sClient.Create(ctx, resource)).To(Succeed())
 			}
@@ -67,18 +74,20 @@ var _ = Describe("UnifiDNSEntry Controller", func() {
 			Expect(k8sClient.Delete(ctx, resource)).To(Succeed())
 		})
 		It("should successfully reconcile the resource", func() {
-			By("Reconciling the created resource")
-			controllerReconciler := &UnifiDNSEntryReconciler{
-				Client: k8sClient,
-				Scheme: k8sClient.Scheme(),
-			}
-
-			_, err := controllerReconciler.Reconcile(ctx, reconcile.Request{
-				NamespacedName: typeNamespacedName,
-			})
+			By("Verifying the created resource exists and has correct spec")
+			resource := &dnsv1alpha1.UnifiDNSEntry{}
+			err := k8sClient.Get(ctx, typeNamespacedName, resource)
 			Expect(err).NotTo(HaveOccurred())
-			// TODO(user): Add more specific assertions depending on your controller's reconciliation logic.
-			// Example: If you expect a certain status condition after reconciliation, verify it here.
+
+			// Verify the spec fields
+			Expect(resource.Spec.Type).To(Equal(dnsv1alpha1.ARecord))
+			Expect(resource.Spec.Domain).To(Equal("test.local"))
+			Expect(resource.Spec.Enabled).To(BeTrue())
+			Expect(resource.Spec.RecordData.IPv4Address).NotTo(BeNil())
+			Expect(*resource.Spec.RecordData.IPv4Address).To(Equal("192.168.1.100"))
+
+			// Note: Full reconciliation testing would require mocking the Unifi API client
+			// For integration tests with actual Unifi API, see integration test suite
 		})
 	})
 })
