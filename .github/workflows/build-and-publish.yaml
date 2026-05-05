@@ -83,12 +83,14 @@ jobs:
 
       - name: Generate deployment manifests
         run: |
-          # Extract version from tag
+          # Extract version from tag (e.g., v0.1.0)
           VERSION=${GITHUB_REF#refs/tags/}
+          # Strip 'v' prefix for container tag (e.g., 0.1.0)
+          VERSION_NO_V=${VERSION#v}
 
-          # Generate manifests with the version tag
+          # Generate manifests with the version tag (without 'v' prefix to match Docker tags)
           cd config/manager
-          kustomize edit set image controller=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}
+          kustomize edit set image controller=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION_NO_V}
           cd ../..
 
           # Build the manifests
